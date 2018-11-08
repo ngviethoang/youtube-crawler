@@ -109,7 +109,8 @@ class YoutubeAPI:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Search on YouTube')
     parser.add_argument("--q", help="Search term", default="Google")
-    parser.add_argument("--max-results", help="Max results", default=50)
+    parser.add_argument("--max-results", help="Max results", default=20)
+    parser.add_argument("--output", help="Output Name", default="output.csv")
     args = parser.parse_args()
 
     args.max_results = int(args.max_results)
@@ -124,18 +125,19 @@ if __name__ == "__main__":
     for search_video in search_videos:
         print('list statistics: ' + search_video['id'])
         statistics = youtubeAPI.list_statistics(search_video['id'])
-
         for k in statistics.keys():
             search_video[k] = statistics[k]
 
-        video_captions = None
-        print('list captions: ' + search_video['id'])
-        list_captions = youtubeAPI.list_captions(search_video['id'])
-        for caption in list_captions:
-            language = caption['snippet']['language']
-            if language in ['en']:
-                print('download captions: ' + search_video['id'])
-                video_captions = youtubeAPI.download_caption(search_video['id'], language)
+        print('download captions: ' + search_video['id'])
+        # video_captions = None
+        # print('list captions: ' + search_video['id'])
+        # list_captions = youtubeAPI.list_captions(search_video['id'])
+        # for caption in list_captions:
+        #     language = caption['snippet']['language']
+        #     if language in ['en']:
+        #         video_captions = youtubeAPI.download_caption(search_video['id'], language)
+
+        video_captions = youtubeAPI.download_caption(search_video['id'], 'en')
 
         search_video['captions'] = video_captions
 
