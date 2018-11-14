@@ -8,7 +8,7 @@ from xml.etree import ElementTree
 import re
 from HTMLParser import HTMLParser
 from mongo_db import get_mongo_db
-import os
+from analyzer import clean_text
 
 mongo_db = get_mongo_db()
 
@@ -77,7 +77,7 @@ class YoutubeAPI:
         subtitles = ' '.join(subtitles)
         subtitles = re.sub(r'\n', ' ', subtitles)
         subtitles = htmlParser.unescape(subtitles)
-        subtitles = subtitles.encode('utf-8')
+        # subtitles = subtitles.encode('utf-8')
 
         return subtitles
 
@@ -94,17 +94,26 @@ if __name__ == "__main__":
         channel_id = youtubeAPI.get_channel_id(channel_name)
         print('Get channel id {} from {}'.format(channel_id, channel_name))
         if channel_id is not None:
-            videos = youtubeAPI.get_videos_from_channel(channel_id, max_results=None)
-            print('Get {} videos'.format(len(videos)))
+            res_videos = youtubeAPI.get_videos_from_channel(channel_id, max_results=None)
+            print('Get {} videos'.format(len(res_videos)))
 
             print('Downloading subtitles...')
 
-            videos = list(map(lambda v: dict(
-                id=v['id']['videoId'],
-                title=v['snippet']['title'],
-                channel_name=channel_name,
-                subtitle=YoutubeAPI.get_subtitles(v['id']['videoId'], 'en'),
-            ), videos))
+            videos = []
+
+            for res_video in res_videos:
+                id = res_video['id']['videoId']
+                subtitle = YoutubeAPI.get_subtitles(id, 'en')
+
+                video = dict(
+                    id=id,
+                    title=res_video['snippet']['title'],
+                    channel_name=channel_name,
+                    snippet=res_video['snippet'],
+                    subtitle=subtitle,
+                    # subtitle_text=clean_text(subtitle)
+                )
+                videos.append(video)
 
             subtitle_videos = list(filter(lambda v: v['subtitle'] is not None, videos))
             print('Get {} videos with english subtitles'.format(len(subtitle_videos)))

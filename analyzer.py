@@ -11,6 +11,9 @@ mongo_db = get_mongo_db()
 
 
 def clean_text(text):
+    if text is None:
+        return []
+
     tokens = word_tokenize(text)
 
     # convert to lower case
@@ -24,8 +27,6 @@ def clean_text(text):
     # filter out stop words
     stop_words = set(stopwords.words('english'))
     words = [w for w in words if not w in stop_words]
-
-    words = stem_words(words)
 
     return words
 
@@ -52,9 +53,20 @@ if __name__ == "__main__":
     for video in videos:
         subtitle = video['subtitle']
         subtitle_words = clean_text(subtitle)
+        subtitle_words = stem_words(subtitle_words)
 
         overlap = common_words & subtitle_words
-        overlap_pnt = float(len(overlap)) / len(common_words) * 100
+        overlap_pnt = float(len(overlap)) / len(subtitle_words) * 100
 
-        print(overlap_pnt)
-
+        mongo_db.update_one(
+            {'id': video['id']},
+            {
+                '$set': {
+                    'stats': {
+                        'subtitle_words': list(subtitle_words),
+                        'overlap': list(overlap),
+                        'overlap_pnt': overlap_pnt
+                    }
+                }
+            }
+        )
