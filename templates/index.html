@@ -11,9 +11,9 @@
 </head>
 <body>
     <div id="app" class="container mt-3 mb-5">
-        <div class="row justify-content-md-center d-none">
-            <div class="col-6">
-                <div class="input-group mb-3">
+        <div class="row justify-content-md-center">
+            <div class="col-6 mb-3">
+                <div class="input-group d-none">
                     <input type="text" class="form-control" placeholder="" aria-label="" aria-describedby="search-icon">
                     <div class="input-group-append">
                         <span class="input-group-text" id="search-icon">
@@ -21,6 +21,15 @@
                         </span>
                     </div>
                 </div>
+                <form class="form-inline">
+                    <label class="my-1 mr-2" for="inputGroupSelect">Vocabulary: </label>
+                    <select class="custom-select my-1 mr-sm-2" id="inputGroupSelect" v-model="vocabulary_number">
+                        <option value="3000" selected>3000</option>
+                        <option value="6000">6000</option>
+                        <option value="10000">10000</option>
+                    </select>
+                    words
+                </form>
             </div>
         </div>
         <div class="videos-list">
@@ -45,7 +54,7 @@
                                 {{ video.channelTitle }}
                                 <br/>
                                 <a href="javascript:" @click="showWordsModal(video)">
-                                    Familiar words: {{ video.stats.overlap_pnt | fixedDigits }}% ({{ video.stats.overlap.length }}/{{ video.stats.subtitle_words.length }} words)
+                                    New words: {{ video.stats.new_words_pnt | fixedDigits }}% ({{ video.stats.new_words.split(' ').length }}/{{ video.subtitle_words.split(' ').length }} words)
                                 </a>
                             </small>
                         </div>
@@ -60,12 +69,13 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Words</h5>
+                        <h5 class="modal-title">Subtitle</h5>
                             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                             <span aria-hidden="true">&times;</span>
                         </button>
                     </div>
                     <div class="modal-body">
+                        <!--<div class="mb-3">{{ wordsModal.subtitle }}</div>-->
                         <table class="table table-sm">
                             <thead>
                                 <tr>
@@ -101,7 +111,9 @@
                 data: {
                     videos: [],
                     pageNum: 1,
+                    vocabulary_number: 10000,
                     wordsModal: {
+                        subtitle: '',
                         common: [],
                         new: []
                     }
@@ -113,7 +125,7 @@
                 },
                 methods: {
                     getVideos(append=false) {
-                        $.getJSON('videos', {limit: 10, page: this.pageNum, order: -1}, res => {
+                        $.getJSON('videos', {limit: 10, page: this.pageNum, order: 1, vocab_num: this.vocabulary_number}, res => {
                             if (append)
                                 this.videos.push(...res.videos);
                             else
@@ -125,15 +137,22 @@
                     showWordsModal(video) {
                         $('#wordsModal').modal('show');
 
-                        let overlap = video.stats.overlap.sort();
-                        let subtitle_words = video.stats.subtitle_words.sort();
+                        let subtitleWords = video.subtitle_words.split(' ').sort();
+                        let newWords = video.stats.new_words.split(' ').sort();
+                        
+                        this.wordsModal.subtitle = video.subtitle;
 
-                        this.wordsModal.common = overlap;
-                        this.wordsModal.new = subtitle_words.filter(w => !overlap.includes(w))
+                        this.wordsModal.new = newWords;
+                        this.wordsModal.common = subtitleWords.filter(w => !newWords.includes(w))
                     }
                 },
                 filters: {
                     fixedDigits: val => val.toFixed(2)
+                },
+                watch: {
+                    vocabulary_number: function() {
+                        this.getVideos()
+                    }
                 }
             })
 

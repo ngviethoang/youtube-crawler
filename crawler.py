@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 import requests
-from googleapiclient.errors import HttpError
-from unidecode import unidecode
 from apiclient.discovery import build
 
 from xml.etree import ElementTree
 import re
 from HTMLParser import HTMLParser
 from mongo_db import get_mongo_db
-from analyzer import clean_text
 
 mongo_db = get_mongo_db()
 
@@ -33,6 +30,7 @@ class YoutubeAPI:
     def get_videos_from_channel(self, channel_id, max_results=None):
         videos = []
 
+        # get videos from api
         response = self.api.search() \
             .list(order='date', part='snippet', regionCode='US',
                   channelId=channel_id, maxResults=50, type='video') \
@@ -44,6 +42,7 @@ class YoutubeAPI:
 
         videos += response['items']
 
+        # get videos based on page token
         while len(videos) < totalResults and 'nextPageToken' in response:
             page_token = response['nextPageToken']
 
@@ -73,6 +72,7 @@ class YoutubeAPI:
         except ElementTree.ParseError:
             return None
 
+        # normalize subtitles
         subtitles = list(filter(lambda c: c is not None, subtitles))
         subtitles = ' '.join(subtitles)
         subtitles = re.sub(r'\n', ' ', subtitles)
@@ -94,6 +94,7 @@ if __name__ == "__main__":
         channel_id = youtubeAPI.get_channel_id(channel_name)
         print('Get channel id {} from {}'.format(channel_id, channel_name))
         if channel_id is not None:
+            # get all videos from a channel
             res_videos = youtubeAPI.get_videos_from_channel(channel_id, max_results=None)
             print('Get {} videos'.format(len(res_videos)))
 
@@ -111,12 +112,8 @@ if __name__ == "__main__":
                     channel_name=channel_name,
                     snippet=res_video['snippet'],
                     subtitle=subtitle,
-                    # subtitle_text=clean_text(subtitle)
                 )
                 videos.append(video)
-
-            subtitle_videos = list(filter(lambda v: v['subtitle'] is not None, videos))
-            print('Get {} videos with english subtitles'.format(len(subtitle_videos)))
 
             print('Inserting to db...')
             mongo_db.insert_many(videos)

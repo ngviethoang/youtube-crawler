@@ -1,15 +1,9 @@
 # -*- coding: utf-8 -*-
-
-import pymongo
 from flask import Flask, render_template, jsonify, request
-from datetime import datetime
-
 from mongo_db import get_mongo_db
 
 mongo_db = get_mongo_db()
 
-
-# app = Flask(__name__)
 
 class CustomFlask(Flask):
     jinja_options = Flask.jinja_options.copy()
@@ -34,9 +28,10 @@ def get_videos():
     nPerPage = int(args['limit'])
     pageNumber = int(args['page'])
     order = int(args['order'])
+    vocab_num = args['vocab_num']
 
     res_videos = mongo_db.find({'subtitle': {'$ne': None}})\
-        .sort('stats.overlap_pnt', order)\
+        .sort('stats.{}.new_words_pnt'.format(vocab_num), order)\
         .skip((pageNumber - 1) * nPerPage if pageNumber > 0 else 0)\
         .limit(nPerPage)
 
@@ -49,7 +44,9 @@ def get_videos():
             channelTitle=res_video['snippet']['channelTitle'],
             description=res_video['snippet']['description'],
             thumbnail=res_video['snippet']['thumbnails']['medium']['url'],
-            stats=res_video['stats']
+            stats=res_video['stats'][vocab_num],
+            subtitle=res_video['subtitle'],
+            subtitle_words=res_video['subtitle_words'],
         )
         videos.append(video)
 
