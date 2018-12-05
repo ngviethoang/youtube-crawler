@@ -6,6 +6,7 @@ from wtforms import StringField, PasswordField
 from wtforms.validators import Email, Length, InputRequired
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+import json
 
 from processor.mongo_db import get_mongo_db
 
@@ -202,6 +203,55 @@ def videos():
     return jsonify(dict(
         videos=videos
     ))
+
+
+@app.route('/api/search')
+@login_required
+def search():
+    query = request.args.get('q', None)
+
+    user = mongo_db['users'].find_one({'email': current_user.email})
+    # Get user's recommended videos
+    user_videos = user['suitable_videos']
+
+    # Get user's watched videos
+    watched_videos = user['watched_videos']
+
+    # Search by query
+    videos = []
+
+    res_videos = mongo_db['subtitles'].find({'subtitle.sentences.text': {"$regex": query}})
+
+    for res_video in res_videos:
+        new_words_stats = filter(lambda x: x['id'] == res_video['id'], user_videos)
+        if len(new_words_stats):
+            new_words_stats = new_words_stats[0]
+        else:
+            new_words_stats = None
+
+        video = dict(
+            id=res_video['id'],
+            title=res_video['title'],
+            channelTitle=res_video['snippet']['channelTitle'],
+            description=res_video['snippet']['description'],
+            thumbnail=res_video['snippet']['thumbnails']['medium']['url'],
+            subtitle=res_video['subtitle'],
+            isWatched=res_video['id'] in watched_videos,
+            new_words_stats=new_words_stats
+        )
+        videos.append(video)
+
+    return jsonify(dict(
+        len=len(videos),
+        videos=videos
+    ))
+
+
+@app.route('/search')
+@login_required
+def search_page():
+    query = request.args.get('q', None)
+    return render_template('search.html', query=query)
 
 
 def update_suitable_videos(vocabulary):

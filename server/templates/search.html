@@ -4,12 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-    <title>Youtube</title>
+    <title>Youtube Search</title>
 
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css">
-
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-fileinput/4.4.9/css/fileinput.min.css" media="all" rel="stylesheet" type="text/css" />
 
     <style>
         .bd-navbar {
@@ -31,11 +29,6 @@
                 <li class="nav-item">
                     <a class="nav-link active" href="/">Home</a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="javascript:" data-toggle="modal" data-target="#vocModal">
-                        My Vocabulary
-                    </a>
-                </li>
             </ul>
         </div>
         <ul class="navbar-nav flex-row ml-md-auto d-none d-md-flex">
@@ -50,9 +43,6 @@
                     <a class="dropdown-item" href="%% url_for('logout') %%">Log out</a>
                 </div>
             </li>
-            <a class="btn btn-outline-warning d-lg-inline-block mb-3 mb-md-0 ml-md-3" href="javascript:" id="updateListBtn">
-                <i class="fas fa-spinner fa-pulse d-none"></i> Update List
-            </a>
         </ul>
     </header>
     <div id="app" class="container mt-3 mb-5">
@@ -71,6 +61,7 @@
                                             <a :href="'https://www.youtube.com/watch?v=' + video.id" target="_blank" >
                                                 {{ video.title }}
                                             </a>
+                                            <span v-show="video.isWatched" class="badge badge-secondary">Watched</span>
                                         </h5>
                                     </div>
                                     <p class="mb-1">
@@ -79,26 +70,17 @@
                                     <small>
                                         {{ video.channelTitle }}
                                         <br/>
-                                        <a href="javascript:" @click="showWordsModal(video)">
-                                            New words: {{ video.new_words_pnt | fixedDigits }}% ({{ video.new_words.split(', ').length }}/{{ video.subtitle.tokens.split(' ').length }} words)
+                                        <a v-if="video.new_words_stats !== null" href="javascript:" @click="showWordsModal(video)">
+                                            New words: {{ video.new_words_stats.new_words_pnt | fixedDigits }}% ({{ video.new_words_stats.new_words.split(', ').length }}/{{ video.subtitle.tokens.split(' ').length }} words)
                                         </a>
                                         <br/>
                                         <a href="javascript:" @click="showVideoModal(video)">
                                             Subtitle
                                         </a>
                                     </small>
-                                    <div class="form-check mt-1">
-                                        <input class="form-check-input watchedCheck" type="checkbox" value="0" :data-video-id="video.id" :id="'watchedCheck-' + id">
-                                        <label class="form-check-label" :for="'watchedCheck-' + id">
-                                            Watched
-                                        </label>
-                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div v-if="videos.length > 0" class="text-center mt-3">
-                        <button type="button" class="btn btn-primary" @click="getVideos(true)" >See More</button>
                     </div>
                 </div>
                 <div class="modal fade" id="wordsModal" tabindex="-1" role="dialog" aria-labelledby="" aria-hidden="true">
@@ -126,34 +108,6 @@
                                         </tr>
                                     </tbody>
                                 </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div id="vocModal" class="modal fade" tabindex="-1" role="dialog">
-                    <div class="modal-dialog modal-lg" role="document">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">My Vocabulary</h5>
-                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="file-loading">
-                                    <input id="inputVocFile" name="voc" type="file">
-                                </div>
-                                <div id="errorBlock" class="help-block"></div>
-                                <form class="mt-3" id="vocabularyForm">
-                                    <div class="form-group">
-                                        <label for="wordsTextarea">Words List ({{ vocNum }} words)</label>
-                                        <textarea name="vocabulary" class="form-control" id="wordsTextarea" rows="10"></textarea>
-                                    </div>
-                                </form>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                                <button type="button" class="btn btn-primary" id="vocabularySubmitBtn">Save changes</button>
                             </div>
                         </div>
                     </div>
@@ -201,7 +155,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" ></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vue"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-fileinput/4.4.9/js/fileinput.min.js"></script>
 
     <script>
         $(document).ready(function () {
@@ -210,108 +163,41 @@
                 el: '#app',
                 data: {
                     videos: [],
-                    pageNum: 1,
-                    vocNum: 0,
                     wordsModal: {
                         common: [],
                         new: []
                     },
+                    query: '',
                     videoModal: null
                 },
                 mounted() {
 
-                    $('#vocModal').on('show.bs.modal', e => {
-                        $.getJSON("%% url_for('vocabulary') %%", res => {
-                            this.vocNum = res.vocabulary.split(', ').length;
-                            $('#wordsTextarea').val(res.vocabulary);
-                        });
-                    });
+                    let query = "%% query %%";
+                    this.query = query;
 
-                    this.getVideos();
+                    $('#searchBar').val(query);
 
-                    $("#inputVocFile").fileinput({
-                        showPreview: false,
-                        allowedFileExtensions: ["txt"],
-                        elErrorContainer: "#errorBlock"
-                    });
-
-                    $('#inputVocFile').on('change', e => {
-                        let file = $(e.target)[0].files[0];
-
-                        let fileReader = new FileReader();
-                        fileReader.onload = e => {
-                            let data = e.target.result;
-                            let uploadWords = data.trim().split('\n').join(', ');
-                            $('#wordsTextarea').val(uploadWords)
-                        };
-                        fileReader.readAsBinaryString(file);
-                    });
-
-                    $('#vocabularySubmitBtn').click(e => {
-                        e.preventDefault();
-
-                        $.ajax({
-                            url: "%% url_for('vocabulary') %%",
-                            method: 'POST',
-                            processData: false,
-                            contentType: false,
-                            data: new FormData($('#vocabularyForm')[0]),
-                            success: res => {
-                                $('#vocModal').modal('hide');
-                                this.getVideos();
-                            }
-                        })
-                    });
-
-                    $('#updateListBtn').click(e => {
-                        $(e.target).find('.fa-spinner').removeClass('d-none');
-                        this.pageNum = 1;
-
-                        let video_ids = [];
-
-                        $('.watchedCheck:checked').each(function () {
-                            video_ids.push($(this).data('video-id'))
-                        });
-
-                        if (video_ids.length > 0) {
-                            $.ajax({
-                                url: "%% url_for('watch_videos') %%",
-                                method: 'GET',
-                                data: {video_ids: video_ids.join(', ')},
-                                success: res => {
-                                    this.getVideos();
-                                }
-                            });
-                        } else {
-                            this.getVideos()
-                        }
+                    $.getJSON("%% url_for('search') %%", {q: query}, res => {
+                        this.videos = res.videos;
                     })
 
                 },
                 methods: {
-                    getVideos(append=false) {
-                        $.getJSON('videos', {limit: 10, page: this.pageNum}, res => {
-                            if (append)
-                                this.videos.push(...res.videos);
-                            else
-                                this.videos = res.videos;
-
-                            this.pageNum += 1;
-
-                            $('.watchedCheck').prop('checked', false);
-                            $('#updateListBtn').find('.fa-spinner').addClass('d-none');
-                        })
-                    },
                     showWordsModal(video) {
                         $('#wordsModal').modal('show');
 
                         let subtitleWords = video.subtitle.tokens.split(', ').sort();
-                        let newWords = video.new_words.split(', ').sort();
+                        let newWords = video.new_words_stats.new_words.split(', ').sort();
 
                         this.wordsModal.new = newWords;
                         this.wordsModal.common = subtitleWords.filter(w => !newWords.includes(w))
                     },
                     showVideoModal(video) {
+                        video.subtitle.sentences.forEach(s => {
+                            s.text = s.text.replace(this.query, `<span class="text-danger">${this.query}</span>`);
+                            return s;
+                        });
+
                         this.videoModal = video;
 
                         this.videoModal.src = `https://www.youtube.com/embed/${this.videoModal.id}`;
