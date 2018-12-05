@@ -129,10 +129,14 @@ def vocabulary():
 def watch_videos():
     video_ids = request.args.get('video_ids', '').split(words_separator)
 
+    # Get user's watched videos
+    watched_videos = mongo_db['users'].find_one({'email': current_user.email})['watched_videos']
+    watched_videos = list(set(watched_videos + video_ids))
+
     # Update watched videos
     mongo_db['users'].update_one(
         {'email': current_user.email},
-        {'$addToSet': {'watched_videos': video_ids}}
+        {'$set': {'watched_videos': watched_videos}}
     )
 
     # Update user's vocabulary based on watched videos
@@ -212,7 +216,7 @@ def update_suitable_videos(vocabulary):
         'id': {'$nin': watched_videos}
     })
     for video in videos:
-        subtitle_tokens = set(video['subtitle']['tokens'].split(' '))
+        subtitle_tokens = set(video['subtitle']['tokens'].split(words_separator))
 
         # Get new words from subtitle
         new_words = subtitle_tokens - set(vocabulary)

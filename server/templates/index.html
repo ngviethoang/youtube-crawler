@@ -32,11 +32,6 @@
                     <a class="nav-link active" href="/">Home</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link updateListBtn" href="javascript:">
-                        Update My List
-                    </a>
-                </li>
-                <li class="nav-item">
                     <a class="nav-link" href="javascript:" data-toggle="modal" data-target="#vocModal">
                         My Vocabulary
                     </a>
@@ -52,6 +47,9 @@
                     <a class="dropdown-item" href="%% url_for('logout') %%">Log out</a>
                 </div>
             </li>
+            <a class="btn btn-outline-warning d-lg-inline-block mb-3 mb-md-0 ml-md-3" href="javascript:" id="updateListBtn">
+                <i class="fas fa-spinner fa-pulse d-none"></i> Update List
+            </a>
         </ul>
     </header>
     <div id="app" class="container mt-3 mb-5">
@@ -83,7 +81,7 @@
                                         </a>
                                     </small>
                                     <div class="form-check mt-1">
-                                        <input class="form-check-input watchedCheck" type="checkbox" value="" :data-video-id="video.id" :id="'watchedCheck-' + id">
+                                        <input class="form-check-input watchedCheck" type="checkbox" value="0" :data-video-id="video.id" :id="'watchedCheck-' + id">
                                         <label class="form-check-label" :for="'watchedCheck-' + id">
                                             Watched
                                         </label>
@@ -93,7 +91,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="text-center mt-3">
+                <div v-if="videos.length > 0" class="text-center mt-3">
                     <button type="button" class="btn btn-primary" @click="getVideos(true)" >See More</button>
                 </div>
                 <div class="modal fade" id="wordsModal" tabindex="-1" role="dialog" aria-labelledby="" aria-hidden="true">
@@ -141,7 +139,7 @@
                                 <div id="errorBlock" class="help-block"></div>
                                 <form class="mt-3" id="vocabularyForm">
                                     <div class="form-group">
-                                        <label for="wordsTextarea">Words List</label>
+                                        <label for="wordsTextarea">Words List ({{ vocNum }} words)</label>
                                         <textarea name="vocabulary" class="form-control" id="wordsTextarea" rows="10"></textarea>
                                     </div>
                                 </form>
@@ -172,6 +170,7 @@
                 data: {
                     videos: [],
                     pageNum: 1,
+                    vocNum: 0,
                     wordsModal: {
                         subtitle: '',
                         common: [],
@@ -180,8 +179,11 @@
                 },
                 mounted() {
 
-                    $.getJSON("%% url_for('vocabulary') %%", res => {
-                        $('#wordsTextarea').val(res.vocabulary)
+                    $('#vocModal').on('show.bs.modal', e => {
+                        $.getJSON("%% url_for('vocabulary') %%", res => {
+                            this.vocNum = res.vocabulary.split(', ').length;
+                            $('#wordsTextarea').val(res.vocabulary);
+                        });
                     });
 
                     this.getVideos();
@@ -220,7 +222,8 @@
                         })
                     });
 
-                    $('.updateListBtn').click(e => {
+                    $('#updateListBtn').click(e => {
+                        $(e.target).find('.fa-spinner').removeClass('d-none');
                         this.pageNum = 1;
 
                         let video_ids = [];
@@ -253,6 +256,9 @@
                                 this.videos = res.videos;
 
                             this.pageNum += 1;
+
+                            $('.watchedCheck').prop('checked', false);
+                            $('#updateListBtn').find('.fa-spinner').addClass('d-none');
                         })
                     },
                     showWordsModal(video) {
