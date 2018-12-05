@@ -6,102 +6,163 @@
 
     <title>Youtube</title>
 
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css">
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-fileinput/4.4.9/css/fileinput.min.css" media="all" rel="stylesheet" type="text/css" />
+
+    <style>
+        .bd-navbar {
+            position: -webkit-sticky;
+            position: sticky;
+            top: 0;
+            z-index: 1049;
+
+            min-height: 4rem;
+            background-color: #563d7c;
+            box-shadow: 0 .5rem 1rem rgba(0,0,0,.05),inset 0 -1px 0 rgba(0,0,0,.1);
+        }
+    </style>
 </head>
 <body>
+    <header class="navbar navbar-expand navbar-dark flex-column flex-md-row bd-navbar">
+        <div class="navbar-nav-scroll">
+            <ul class="navbar-nav bd-navbar-nav flex-row">
+                <li class="nav-item">
+                    <a class="nav-link active" href="/">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link updateListBtn" href="javascript:">
+                        Update My List
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="javascript:" data-toggle="modal" data-target="#vocModal">
+                        My Vocabulary
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <ul class="navbar-nav flex-row ml-md-auto d-none d-md-flex">
+            <li class="nav-item dropdown">
+                <a class="nav-item nav-link dropdown-toggle mr-md-2" href="#" id="bd-versions" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    %% current_user.email %%
+                </a>
+                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="bd-versions">
+                    <a class="dropdown-item" href="%% url_for('logout') %%">Log out</a>
+                </div>
+            </li>
+        </ul>
+    </header>
     <div id="app" class="container mt-3 mb-5">
-        %% user %%
-        <div class="row justify-content-md-center">
-            <div class="col-6 mb-3">
-                <div class="input-group d-none">
-                    <input type="text" class="form-control" placeholder="" aria-label="" aria-describedby="search-icon">
-                    <div class="input-group-append">
-                        <span class="input-group-text" id="search-icon">
-                            <i class="fas fa-search"></i>
-                        </span>
-                    </div>
-                </div>
-                <form class="form-inline">
-                    <label class="my-1 mr-2" for="inputGroupSelect">Vocabulary: ~</label>
-                    <select class="custom-select my-1 mr-sm-2" id="inputGroupSelect" v-model="vocabulary_number">
-                        <option value="3000" selected>3000</option>
-                        <option value="6000">6000</option>
-                        <option value="10000">10000</option>
-                    </select>
-                    words
-                </form>
-            </div>
-        </div>
-        <div class="videos-list">
-            <div class="list-group list-group-flush">
-                <div v-for="video in videos" class="list-group-item list-group-item-action flex-column align-items-start">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <img :src="video.thumbnail" class="img-thumbnail">
-                        </div>
-                        <div class="col-md-9">
-                            <div class="d-flex w-100 justify-content-between">
-                                <h5 class="mb-1">
-                                    <a :href="'https://www.youtube.com/watch?v=' + video.id" target="_blank" >
-                                        {{ video.title }}
-                                    </a>
-                                </h5>
+        <div class="row flex-xl-nowrap">
+            <main class="col-12">
+                <div class="videos-list">
+                    <div class="list-group list-group-flush">
+                        <div v-for="video, id in videos" class="list-group-item list-group-item-action flex-column align-items-start">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <img :src="video.thumbnail" class="img-thumbnail">
+                                </div>
+                                <div class="col-md-9">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h5 class="mb-1">
+                                            <a :href="'https://www.youtube.com/watch?v=' + video.id" target="_blank" >
+                                                {{ video.title }}
+                                            </a>
+                                        </h5>
+                                    </div>
+                                    <p class="mb-1">
+                                        {{ video.description }}
+                                    </p>
+                                    <small>
+                                        {{ video.channelTitle }}
+                                        <br/>
+                                        <a href="javascript:" @click="showWordsModal(video)">
+                                            New words: {{ video.new_words_pnt | fixedDigits }}% ({{ video.new_words.split(', ').length }}/{{ video.subtitle.tokens.split(' ').length }} words)
+                                        </a>
+                                    </small>
+                                    <div class="form-check mt-1">
+                                        <input class="form-check-input watchedCheck" type="checkbox" value="" :data-video-id="video.id" :id="'watchedCheck-' + id">
+                                        <label class="form-check-label" :for="'watchedCheck-' + id">
+                                            Watched
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
-                            <p class="mb-1">
-                                {{ video.description }}
-                            </p>
-                            <small>
-                                {{ video.channelTitle }}
-                                <br/>
-                                <a href="javascript:" @click="showWordsModal(video)">
-                                    New words: {{ video.stats.new_words_pnt | fixedDigits }}% ({{ video.stats.new_words.split(' ').length }}/{{ video.subtitle_words.split(' ').length }} words)
-                                </a>
-                            </small>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-        <div class="text-center mt-3">
-            <button type="button" class="btn btn-primary" @click="getVideos(true)" >Next</button>
-        </div>
-        <div class="modal fade bd-example-modal-lg" id="wordsModal" tabindex="-1" role="dialog" aria-labelledby="" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Subtitle</h5>
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <!--<div class="mb-3">{{ wordsModal.subtitle }}</div>-->
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th scope="col">Common words</th>
-                                    <th scope="col">New words</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td v-html="wordsModal.common.join('<br/>')"></td>
-                                    <td v-html="wordsModal.new.join('<br/>')"></td>
-                                </tr>
-                            </tbody>
-                        </table>
+                <div class="text-center mt-3">
+                    <button type="button" class="btn btn-primary" @click="getVideos(true)" >See More</button>
+                </div>
+                <div class="modal fade" id="wordsModal" tabindex="-1" role="dialog" aria-labelledby="" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Subtitle</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <!--<div class="mb-3">{{ wordsModal.subtitle }}</div>-->
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Common words</th>
+                                            <th scope="col">New words</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td v-html="wordsModal.common.join('<br/>')"></td>
+                                            <td v-html="wordsModal.new.join('<br/>')"></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
+                <div id="vocModal" class="modal fade" tabindex="-1" role="dialog">
+                    <div class="modal-dialog modal-lg" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">My Vocabulary</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="file-loading">
+                                    <input id="inputVocFile" name="voc" type="file">
+                                </div>
+                                <div id="errorBlock" class="help-block"></div>
+                                <form class="mt-3" id="vocabularyForm">
+                                    <div class="form-group">
+                                        <label for="wordsTextarea">Words List</label>
+                                        <textarea name="vocabulary" class="form-control" id="wordsTextarea" rows="10"></textarea>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-primary" id="vocabularySubmitBtn">Save changes</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
         </div>
-
     </div>
 
+
     <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" ></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-fileinput/4.4.9/js/fileinput.min.js"></script>
 
     <script>
         $(document).ready(function () {
@@ -111,7 +172,6 @@
                 data: {
                     videos: [],
                     pageNum: 1,
-                    vocabulary_number: 10000,
                     wordsModal: {
                         subtitle: '',
                         common: [],
@@ -120,12 +180,73 @@
                 },
                 mounted() {
 
-                    this.getVideos()
+                    $.getJSON("%% url_for('vocabulary') %%", res => {
+                        $('#wordsTextarea').val(res.vocabulary)
+                    });
+
+                    this.getVideos();
+
+                    $("#inputVocFile").fileinput({
+                        showPreview: false,
+                        allowedFileExtensions: ["txt"],
+                        elErrorContainer: "#errorBlock"
+                    });
+
+                    $('#inputVocFile').on('change', e => {
+                        let file = $(e.target)[0].files[0];
+
+                        let fileReader = new FileReader();
+                        fileReader.onload = e => {
+                            let data = e.target.result;
+                            let uploadWords = data.trim().split('\n').join(', ');
+                            $('#wordsTextarea').val(uploadWords)
+                        };
+                        fileReader.readAsBinaryString(file);
+                    });
+
+                    $('#vocabularySubmitBtn').click(e => {
+                        e.preventDefault();
+
+                        $.ajax({
+                            url: "%% url_for('vocabulary') %%",
+                            method: 'POST',
+                            processData: false,
+                            contentType: false,
+                            data: new FormData($('#vocabularyForm')[0]),
+                            success: res => {
+                                $('#vocModal').modal('hide');
+                                this.getVideos();
+                            }
+                        })
+                    });
+
+                    $('.updateListBtn').click(e => {
+                        this.pageNum = 1;
+
+                        let video_ids = [];
+
+                        $('.watchedCheck:checked').each(function () {
+                            video_ids.push($(this).data('video-id'))
+                        });
+
+                        if (video_ids.length > 0) {
+                            $.ajax({
+                                url: "%% url_for('watch_videos') %%",
+                                method: 'GET',
+                                data: {video_ids: video_ids.join(', ')},
+                                success: res => {
+                                    this.getVideos();
+                                }
+                            });
+                        } else {
+                            this.getVideos()
+                        }
+                    })
 
                 },
                 methods: {
                     getVideos(append=false) {
-                        $.getJSON('videos', {limit: 10, page: this.pageNum, order: 1, vocab_num: this.vocabulary_number}, res => {
+                        $.getJSON('videos', {limit: 10, page: this.pageNum}, res => {
                             if (append)
                                 this.videos.push(...res.videos);
                             else
@@ -137,9 +258,9 @@
                     showWordsModal(video) {
                         $('#wordsModal').modal('show');
 
-                        let subtitleWords = video.subtitle_words.split(' ').sort();
-                        let newWords = video.stats.new_words.split(' ').sort();
-                        
+                        let subtitleWords = video.subtitle.tokens.split(', ').sort();
+                        let newWords = video.new_words.split(', ').sort();
+
                         this.wordsModal.subtitle = video.subtitle;
 
                         this.wordsModal.new = newWords;
@@ -148,11 +269,6 @@
                 },
                 filters: {
                     fixedDigits: val => val.toFixed(2)
-                },
-                watch: {
-                    vocabulary_number: function() {
-                        this.getVideos()
-                    }
                 }
             })
 
