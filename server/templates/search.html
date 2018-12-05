@@ -193,10 +193,12 @@
                         this.wordsModal.common = subtitleWords.filter(w => !newWords.includes(w))
                     },
                     showVideoModal(video) {
-                        video.subtitle.sentences.forEach(s => {
-                            s.text = s.text.replace(this.query, `<span class="text-danger">${this.query}</span>`);
-                            return s;
-                        });
+                        video.subtitle.sentences = video.subtitle.sentences
+                            .filter(s => s.text.includes(this.query))
+                            .map(s => {
+                                s.text = s.text.replace(this.query, `<span class="text-danger">${this.query}</span>`);
+                                return s;
+                            });
 
                         this.videoModal = video;
 

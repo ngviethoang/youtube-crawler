@@ -220,7 +220,7 @@ def search():
     # Search by query
     videos = []
 
-    res_videos = mongo_db['subtitles'].find({'subtitle.sentences.text': {"$regex": query}})
+    res_videos = mongo_db['subtitles'].find({'subtitle.sentences.text': {"$regex": ' {} '.format(query)}})
 
     for res_video in res_videos:
         new_words_stats = filter(lambda x: x['id'] == res_video['id'], user_videos)
